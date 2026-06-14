@@ -1387,6 +1387,8 @@ function AdminAnalysisReportPage({
     summary?.previousCategorySatisfaction ?? [],
   );
   const hasPreviousComparison = comparisonData.some((item) => item.previousYear !== null);
+  const hasDenseComparisonLabels = comparisonData.length > 7;
+  const comparisonChartMinWidth = Math.max(720, comparisonData.length * (hasPreviousComparison ? 104 : 86));
   const radarData = buildRadarSatisfactionData(satisfactionData);
   const allReportThemes = selectedReport?.themes ?? [];
   const groupedIssues = allReportThemes
@@ -1510,18 +1512,39 @@ function AdminAnalysisReportPage({
             title={hasPreviousComparison ? 'Current semester vs previous semester' : 'Current category satisfaction'}
             action={hasPreviousComparison ? 'Percentage score' : undefined}
           />
-          <ResponsiveContainer width="100%" height={330}>
-            <BarChart data={comparisonData} barCategoryGap="26%" barGap={8}>
-              <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
-              <XAxis dataKey="category" tick={{ fill: '#475569', fontSize: 12 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} domain={[0, 100]} />
-              <Tooltip />
-              {hasPreviousComparison && (
-                <Bar barSize={30} dataKey="previousYear" fill="#10b981" name="Previous Semester" radius={[0, 0, 0, 0]} />
-              )}
-              <Bar barSize={30} dataKey="currentYear" fill="#635bff" name="Current Semester" radius={[0, 0, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="comparison-chart-scroll" aria-label="Semester comparison chart">
+            <div
+              className="comparison-chart-canvas"
+              style={{ minWidth: `${comparisonChartMinWidth}px` }}
+            >
+              <ResponsiveContainer width="100%" height={340}>
+                <BarChart
+                  data={comparisonData}
+                  barCategoryGap={hasDenseComparisonLabels ? '20%' : '30%'}
+                  barGap={8}
+                  margin={{ bottom: hasDenseComparisonLabels ? 24 : 6, left: 0, right: 12, top: 8 }}
+                >
+                  <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
+                  <XAxis
+                    angle={hasDenseComparisonLabels ? -22 : 0}
+                    axisLine={false}
+                    dataKey="category"
+                    height={hasDenseComparisonLabels ? 74 : 42}
+                    interval={0}
+                    tick={{ fill: '#475569', fontSize: hasDenseComparisonLabels ? 11 : 12, fontWeight: 800 }}
+                    tickLine={false}
+                    textAnchor={hasDenseComparisonLabels ? 'end' : 'middle'}
+                  />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <Tooltip />
+                  {hasPreviousComparison && (
+                    <Bar barSize={26} dataKey="previousYear" fill="#10b981" name="Previous Semester" radius={[0, 0, 0, 0]} />
+                  )}
+                  <Bar barSize={26} dataKey="currentYear" fill="#635bff" name="Current Semester" radius={[0, 0, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
           {!hasPreviousComparison && (
             <p className="comparison-empty-note">
               Previous semester data is not available for this tenant yet, so only current semester scores are shown.
