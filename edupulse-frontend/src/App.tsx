@@ -426,9 +426,7 @@ function App() {
   }
 
   if (!auth && !authMode) {
-    return (
-      <LandingPage onChooseRole={setAuthMode} />
-    );
+    return <LandingPage onChooseRole={setAuthMode} />;
   }
 
   if (!auth && authMode) {
@@ -536,7 +534,7 @@ function App() {
           />
         )}
       </section>
-      {!adminFullScreen && <TeamEurekaBadge />}
+      <TeamEurekaBadge />
     </main>
   );
 }
@@ -1144,7 +1142,12 @@ function AdminDashboard({
   const [analysisStepIndex, setAnalysisStepIndex] = useState(0);
 
   useEffect(() => {
-    onFullScreenChange?.(adminView === 'analysis' || adminView === 'analyzing' || adminView === 'create');
+    onFullScreenChange?.(
+      adminView === 'analysis' ||
+      adminView === 'analyzing' ||
+      adminView === 'create' ||
+      adminView === 'audit',
+    );
     return () => onFullScreenChange?.(false);
   }, [adminView, onFullScreenChange]);
 
@@ -1318,7 +1321,7 @@ function AdminDashboard({
       <AdminAuditLogsView
         auditLogs={auditLogs || []}
         onBack={() => setAdminView('home')}
-        onRefresh={() => void loadAdminData()}
+        onRefresh={loadAdminData}
       />
     );
   }
@@ -1711,7 +1714,6 @@ function AdminAnalysisReportPage({
 
       <AiEngineBenchmarkSection benchmark={engineBenchmark} />
 
-      <p className="analysis-team-footer">Developed by Team Eureka ♥</p>
     </div>
   );
 }
@@ -2727,12 +2729,14 @@ function AdminAuditLogsView({
 }: {
   auditLogs: AuditLog[];
   onBack: () => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<void>;
 }) {
   const [selected, setSelected] = useState<AuditLog | null>(auditLogs[0] ?? null);
   const [visibleCount, setVisibleCount] = useState(12);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    if (isRefreshing) return;
     setSelected((current) => {
       if (current && auditLogs.some((item) => item.id === current.id)) {
         return current;
@@ -2740,34 +2744,32 @@ function AdminAuditLogsView({
       return auditLogs[0] ?? null;
     });
     setVisibleCount(12);
-  }, [auditLogs]);
+  }, [auditLogs, isRefreshing]);
+
+  async function refreshAuditLogs() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setSelected(null);
+    setVisibleCount(12);
+    try {
+      await onRefresh();
+      await delay(450);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   const actorName = selected?.actor?.name ?? 'System';
   const metadataRows = getAuditMetadataRows(selected?.metadata);
   const collegeName = selected?.college?.name ?? auditLogs[0]?.college?.name ?? 'Current college';
-  const visibleAuditLogs = auditLogs.slice(0, visibleCount);
-  const hasMoreAuditLogs = visibleCount < auditLogs.length;
+  const visibleAuditLogs = isRefreshing ? [] : auditLogs.slice(0, visibleCount);
+  const hasMoreAuditLogs = !isRefreshing && visibleCount < auditLogs.length;
 
   return (
     <div className="admin-stack audit-workspace">
       <button className="auth-back-button admin-back-button" type="button" onClick={onBack}>
         Go back
       </button>
-
-      <section className="audit-hero-panel">
-        <div>
-          <p className="eyebrow">Admin activity trail</p>
-          <h2>Audit logs</h2>
-          <span>
-            Tenant-scoped activity for {collegeName}. Every login, feedback change, analysis run,
-            and report access is recorded for review.
-          </span>
-        </div>
-        <button className="audit-refresh-button" type="button" onClick={onRefresh}>
-          <RefreshCw size={16} />
-          Refresh activity
-        </button>
-      </section>
 
       <section className="audit-log-grid">
         <div className="audit-feed-panel">
@@ -2776,11 +2778,25 @@ function AdminAuditLogsView({
               <p className="eyebrow">Recent events</p>
               <h3>{auditLogs.length} recorded action(s)</h3>
             </div>
-            <ShieldCheck size={22} />
+            <button
+              className={`audit-refresh-button ${isRefreshing ? 'refreshing' : ''}`}
+              type="button"
+              onClick={() => void refreshAuditLogs()}
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={16} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh datasets'}
+            </button>
           </div>
 
-          <div className="audit-timeline">
-            {auditLogs.length ? (
+          <div className={`audit-timeline ${isRefreshing ? 'refreshing' : ''}`} aria-busy={isRefreshing}>
+            {isRefreshing ? (
+              <div className="audit-refresh-state">
+                <RefreshCw size={28} />
+                <strong>Refreshing audit logs</strong>
+                <span>Latest college activity will appear again in a moment.</span>
+              </div>
+            ) : auditLogs.length ? (
               <>
                 {visibleAuditLogs.map((log) => (
                   <button
@@ -2821,7 +2837,13 @@ function AdminAuditLogsView({
         </div>
 
         <div className="audit-detail-panel">
-          {selected ? (
+          {isRefreshing ? (
+            <div className="audit-empty-state detail">
+              <RefreshCw size={28} />
+              <strong>Refreshing details</strong>
+              <span>Selected log details will return after refresh.</span>
+            </div>
+          ) : selected ? (
             <>
               <div className="audit-detail-topline">
                 <span className="audit-action-chip">{formatAuditAction(selected.action)}</span>

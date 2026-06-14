@@ -6545,15 +6545,6 @@ button:disabled {
   font-weight: 850;
 }
 
-.analysis-team-footer {
-  margin: -2px 0 10px;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0;
-  text-align: center;
-}
-
 .action-report-header {
   display: flex;
   align-items: start;
@@ -10425,7 +10416,7 @@ button:disabled {
   color: #ef4444 !important;
 }
 
-/* 5. Developed by Team Eureka Simple Signature Footer */
+/* 5. Team signature footer */
 .team-eureka-badge {
   position: static !important;
   display: flex !important;
@@ -12537,4 +12528,157 @@ button:disabled {
 
 .analytics-blackhole-hero .blackhole-logo-wrapper:hover {
   transform: scale(1.06) rotate(4deg) !important;
+}
+
+/* Final Team Eureka signature: embedded footer text, not a floating card. */
+.team-eureka-badge,
+.auth-shell .team-eureka-badge,
+.app-shell .team-eureka-badge,
+.app-shell:has(.admin-home-panel) .team-eureka-badge {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: max-content !important;
+  min-height: auto !important;
+  margin: 18px auto 20px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+  font-size: 0.74rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  pointer-events: none !important;
+}
+
+.public-shell.auth-shell {
+  align-content: center !important;
+}
+
+.team-eureka-badge svg,
+.auth-shell .team-eureka-badge svg,
+.app-shell .team-eureka-badge svg,
+.app-shell:has(.admin-home-panel) .team-eureka-badge svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+  color: #22c55e !important;
+  stroke-width: 2.8 !important;
+}
+
+/* Final audit log cleanup: no top card, plain back button, animated refresh. */
+.workspace:has(.audit-workspace) {
+  padding-top: 24px !important;
+}
+
+.audit-workspace {
+  display: grid !important;
+  gap: 20px !important;
+  padding-bottom: 12px !important;
+}
+
+.audit-workspace > .admin-back-button {
+  position: static !important;
+  justify-self: start !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+  font-weight: 950 !important;
+}
+
+.audit-workspace > .admin-back-button:hover {
+  color: #2563eb !important;
+  box-shadow: none !important;
+  transform: translateX(-3px) !important;
+}
+
+.audit-feed-header {
+  align-items: flex-start !important;
+}
+
+.audit-refresh-button.refreshing {
+  border-color: rgba(37, 99, 235, 0.34) !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(20, 184, 166, 0.12)),
+    #ffffff !important;
+  box-shadow:
+    0 20px 48px rgba(37, 99, 235, 0.16),
+    0 0 0 6px rgba(37, 99, 235, 0.06) !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-2px) !important;
+}
+
+.audit-refresh-button.refreshing svg,
+.audit-refresh-state svg,
+.audit-empty-state.detail svg {
+  animation: refreshSpin 0.9s linear infinite !important;
+}
+
+.audit-refresh-button:disabled {
+  cursor: wait !important;
+  opacity: 0.92 !important;
+}
+
+.audit-timeline.refreshing {
+  animation: auditFadeOutIn 0.34s ease both !important;
+}
+
+.audit-refresh-state {
+  display: grid !important;
+  place-items: center !important;
+  gap: 9px !important;
+  min-height: 320px !important;
+  border: 1px dashed rgba(37, 99, 235, 0.18) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.68) !important;
+  color: #475569 !important;
+  text-align: center !important;
+}
+
+.audit-refresh-state svg {
+  color: #2563eb !important;
+  filter: drop-shadow(0 12px 22px rgba(37, 99, 235, 0.24)) !important;
+}
+
+.audit-refresh-state strong {
+  color: #0f172a !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+}
+
+.audit-refresh-state span {
+  max-width: 360px !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+}
+
+@keyframes auditFadeOutIn {
+  0% {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
