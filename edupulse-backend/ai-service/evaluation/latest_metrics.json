@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T16:54:11.517115+00:00",
+  "generatedAt": "2026-06-14T14:36:55.861046+00:00",
   "datasetName": "EduPulse College Feedback Evaluation Set",
   "datasetVersion": "2026-06-10",
   "modelMode": "deterministic-fallback-safe-mode",
@@ -82,7 +82,7 @@
       {
         "comment": "Wi-Fi is not working in the lab block and online practicals are getting delayed.",
         "topic": "Infrastructure",
-        "repeated": 3,
+        "repeated": 2,
         "decision": "Grouped as repeated signal"
       }
     ]

@@ -1,6 +1,6 @@
 # EduPulse AI Evaluation Report
 
-Generated: 2026-06-13T16:54:11.517115+00:00
+Generated: 2026-06-14T14:36:55.861046+00:00
 
 Dataset: EduPulse College Feedback Evaluation Set (2026-06-10)
 
@@ -81,7 +81,7 @@ Model mode: `deterministic-fallback-safe-mode`
     {
       "comment": "Wi-Fi is not working in the lab block and online practicals are getting delayed.",
       "topic": "Infrastructure",
-      "repeated": 3,
+      "repeated": 2,
       "decision": "Grouped as repeated signal"
     }
   ]
@@ -92,12 +92,12 @@ Model mode: `deterministic-fallback-safe-mode`
 
 - **Wi-Fi connectivity issue** - HIGH / NEGATIVE (3 mentions)
 - **Mess hygiene and food availability issue** - HIGH / NEGATIVE (2 mentions)
+- **Lab equipment issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Projector issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Campus lighting issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Faculty doubt support issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Faculty marks partiality issue** - MEDIUM / NEGATIVE (1 mentions)
-- **Academic assessment clarity issue** - MEDIUM / NEGATIVE (1 mentions)
-- **Sports item availability issue** - MEDIUM / NEGATIVE (1 mentions)
+- **Academic workload issue** - MEDIUM / NEGATIVE (1 mentions)
 
 ## Known Misses
 
@@ -112,6 +112,6 @@ Priority misses: None.
 ## How To Re-run
 
 ```powershell
-cd "C:\Users\gaura\OneDrive\Desktop\Hack Prix\edupulse-backend"
+cd "C:\Users\gaura\OneDrive\Desktop\Hack Prix\Edupulse-push\edupulse-backend"
 python ai-service/evaluation/evaluate_ai.py
 ```
