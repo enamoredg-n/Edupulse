@@ -1,0 +1,523 @@
+{
+  "generatedAt": "2026-06-13T16:54:11.517115+00:00",
+  "datasetName": "EduPulse College Feedback Evaluation Set",
+  "datasetVersion": "2026-06-10",
+  "modelMode": "deterministic-fallback-safe-mode",
+  "sampleSize": {
+    "feedback": 21,
+    "legacySafetyFeedbackConverted": 3,
+    "total": 21
+  },
+  "qualityFilterAccuracy": {
+    "correct": 21,
+    "total": 21,
+    "score": 1.0,
+    "percentage": 100.0
+  },
+  "sentimentAccuracy": {
+    "correct": 16,
+    "total": 16,
+    "score": 1.0,
+    "percentage": 100.0
+  },
+  "themeCoverage": {
+    "correct": 13,
+    "total": 14,
+    "score": 0.9286,
+    "percentage": 92.86
+  },
+  "priorityPlacement": {
+    "correct": 3,
+    "total": 3,
+    "score": 1.0,
+    "percentage": 100.0
+  },
+  "overallScore": 0.9821,
+  "qualityBreakdown": {
+    "totalComments": 21,
+    "usefulComments": 17,
+    "usefulSignalComments": 17,
+    "uniqueUsefulComments": 16,
+    "duplicateCount": 1,
+    "lowQualityRejectedCount": 4,
+    "rejected": {
+      "too_short": 3,
+      "repeated_words": 1
+    },
+    "rejectedExamples": [
+      {
+        "comment": "aaaaaaa",
+        "topic": "Food & Mess",
+        "question": "How satisfied are you with food quality?",
+        "source": "CSE student, Semester 5",
+        "reason": "too_short",
+        "decision": "Ignored from theme analysis"
+      },
+      {
+        "comment": "good good good good good",
+        "topic": "Faculty",
+        "question": "How satisfied are you with teaching clarity?",
+        "source": "ME student, Semester 3",
+        "reason": "repeated_words",
+        "decision": "Ignored from theme analysis"
+      },
+      {
+        "comment": "1234567890",
+        "topic": "Infrastructure",
+        "question": "How available are lab systems during practical work?",
+        "source": "IT student, Semester 5",
+        "reason": "too_short",
+        "decision": "Ignored from theme analysis"
+      },
+      {
+        "comment": "ok",
+        "topic": "Sports & Campus",
+        "question": "How safe do you feel on campus after regular hours?",
+        "source": "CE student, Semester 3",
+        "reason": "too_short",
+        "decision": "Ignored from theme analysis"
+      }
+    ],
+    "duplicateExamples": [
+      {
+        "comment": "Wi-Fi is not working in the lab block and online practicals are getting delayed.",
+        "topic": "Infrastructure",
+        "repeated": 3,
+        "decision": "Grouped as repeated signal"
+      }
+    ]
+  },
+  "analysisSummary": "EduPulse Evaluation Term: 21 response(s) were reduced into 11 issue cluster(s) using 17 useful signal comment(s). Top issue areas are Ragging concern, Mess hygiene and food availability issue, Campus lighting issue.",
+  "analysisConfidence": 0.69,
+  "themeCount": 10,
+  "actionCount": 2,
+  "rows": {
+    "quality": [
+      {
+        "id": "fb-food-001",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Mess food is cold and unhygienic, many students are getting stomach problems."
+      },
+      {
+        "id": "fb-food-002",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Canteen food quality is poor and the serving area is dirty during lunch."
+      },
+      {
+        "id": "fb-food-003",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Food variety improved this semester and breakfast options are good."
+      },
+      {
+        "id": "fb-infra-001",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Wi-Fi is not working in the lab block and online practicals are getting delayed."
+      },
+      {
+        "id": "fb-infra-002",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Lab computers are slow and many systems are broken during project work."
+      },
+      {
+        "id": "fb-infra-003",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Projector is not working in room 305 and classes waste time every week."
+      },
+      {
+        "id": "fb-faculty-001",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Faculty explains concepts clearly and gives helpful real world examples."
+      },
+      {
+        "id": "fb-faculty-002",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Doubt sessions are unavailable and faculty support is slow before exams."
+      },
+      {
+        "id": "fb-faculty-003",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Some faculty communication is rude and unfair during internal marks discussion."
+      },
+      {
+        "id": "fb-academics-001",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Assignment workload is heavy and deadlines are too close to exams."
+      },
+      {
+        "id": "fb-academics-002",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Exam pattern and internal assessment expectations are clear this semester."
+      },
+      {
+        "id": "fb-sports-001",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Sports equipment is unavailable and ground maintenance is poor."
+      },
+      {
+        "id": "fb-sports-002",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Campus feels unsafe near parking after evening classes because lights are broken."
+      },
+      {
+        "id": "fb-dup-001",
+        "expectedUseful": false,
+        "predictedUseful": false,
+        "correct": true,
+        "reason": "duplicate",
+        "comment": "Wi-Fi is not working in the lab block and online practicals are getting delayed."
+      },
+      {
+        "id": "fb-fake-001",
+        "expectedUseful": false,
+        "predictedUseful": false,
+        "correct": true,
+        "reason": "too_short",
+        "comment": "aaaaaaa"
+      },
+      {
+        "id": "fb-fake-002",
+        "expectedUseful": false,
+        "predictedUseful": false,
+        "correct": true,
+        "reason": "repeated_words",
+        "comment": "good good good good good"
+      },
+      {
+        "id": "fb-fake-003",
+        "expectedUseful": false,
+        "predictedUseful": false,
+        "correct": true,
+        "reason": "too_short",
+        "comment": "1234567890"
+      },
+      {
+        "id": "fb-fake-004",
+        "expectedUseful": false,
+        "predictedUseful": false,
+        "correct": true,
+        "reason": "too_short",
+        "comment": "ok"
+      },
+      {
+        "id": "legacy-safety-feedback-1",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Ragging near hostel. A senior group threatened first year students near hostel gate at night."
+      },
+      {
+        "id": "legacy-safety-feedback-2",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Wi-Fi outage. Hostel Wi-Fi is unavailable for three days and students cannot attend online labs."
+      },
+      {
+        "id": "legacy-safety-feedback-3",
+        "expectedUseful": true,
+        "predictedUseful": true,
+        "correct": true,
+        "reason": null,
+        "comment": "Rude behavior. Office staff was rude and did not help with scholarship document correction."
+      }
+    ],
+    "sentiment": [
+      {
+        "id": "fb-food-001",
+        "expected": "CRITICAL",
+        "predicted": "CRITICAL",
+        "correct": true,
+        "text": "Mess food is cold and unhygienic, many students are getting stomach problems."
+      },
+      {
+        "id": "fb-food-002",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Canteen food quality is poor and the serving area is dirty during lunch."
+      },
+      {
+        "id": "fb-food-003",
+        "expected": "POSITIVE",
+        "predicted": "POSITIVE",
+        "correct": true,
+        "text": "Food variety improved this semester and breakfast options are good."
+      },
+      {
+        "id": "fb-infra-001",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Wi-Fi is not working in the lab block and online practicals are getting delayed."
+      },
+      {
+        "id": "fb-infra-002",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Lab computers are slow and many systems are broken during project work."
+      },
+      {
+        "id": "fb-infra-003",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Projector is not working in room 305 and classes waste time every week."
+      },
+      {
+        "id": "fb-faculty-001",
+        "expected": "POSITIVE",
+        "predicted": "POSITIVE",
+        "correct": true,
+        "text": "Faculty explains concepts clearly and gives helpful real world examples."
+      },
+      {
+        "id": "fb-faculty-002",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Doubt sessions are unavailable and faculty support is slow before exams."
+      },
+      {
+        "id": "fb-faculty-003",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Some faculty communication is rude and unfair during internal marks discussion."
+      },
+      {
+        "id": "fb-academics-001",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Assignment workload is heavy and deadlines are too close to exams."
+      },
+      {
+        "id": "fb-academics-002",
+        "expected": "POSITIVE",
+        "predicted": "POSITIVE",
+        "correct": true,
+        "text": "Exam pattern and internal assessment expectations are clear this semester."
+      },
+      {
+        "id": "fb-sports-001",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Sports equipment is unavailable and ground maintenance is poor."
+      },
+      {
+        "id": "fb-sports-002",
+        "expected": "CRITICAL",
+        "predicted": "CRITICAL",
+        "correct": true,
+        "text": "Campus feels unsafe near parking after evening classes because lights are broken."
+      },
+      {
+        "id": "legacy-safety-feedback-1",
+        "expected": "CRITICAL",
+        "predicted": "CRITICAL",
+        "correct": true,
+        "text": "Ragging near hostel. A senior group threatened first year students near hostel gate at night."
+      },
+      {
+        "id": "legacy-safety-feedback-2",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Wi-Fi outage. Hostel Wi-Fi is unavailable for three days and students cannot attend online labs."
+      },
+      {
+        "id": "legacy-safety-feedback-3",
+        "expected": "NEGATIVE",
+        "predicted": "NEGATIVE",
+        "correct": true,
+        "text": "Rude behavior. Office staff was rude and did not help with scholarship document correction."
+      }
+    ],
+    "themes": [
+      {
+        "theme": "academic workload",
+        "tokensChecked": [
+          "academic",
+          "workload"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "campus safety",
+        "tokensChecked": [
+          "safety"
+        ],
+        "covered": false,
+        "correct": false
+      },
+      {
+        "theme": "doubt support",
+        "tokensChecked": [
+          "doubt"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "exam clarity",
+        "tokensChecked": [
+          "exam",
+          "clarity"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "faculty communication",
+        "tokensChecked": [
+          "faculty",
+          "communication"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "food hygiene",
+        "tokensChecked": [
+          "food",
+          "hygiene"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "food variety",
+        "tokensChecked": [
+          "food",
+          "variety"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "lab systems",
+        "tokensChecked": [
+          "systems"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "projector issue",
+        "tokensChecked": [
+          "projector"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "ragging safety",
+        "tokensChecked": [
+          "ragging",
+          "safety"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "sports equipment",
+        "tokensChecked": [
+          "sports",
+          "equipment"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "staff behavior",
+        "tokensChecked": [
+          "staff",
+          "behavior"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "teaching clear",
+        "tokensChecked": [
+          "teaching",
+          "clear"
+        ],
+        "covered": true,
+        "correct": true
+      },
+      {
+        "theme": "wifi issue",
+        "tokensChecked": [
+          "wifi"
+        ],
+        "covered": true,
+        "correct": true
+      }
+    ],
+    "priority": [
+      {
+        "theme": "food hygiene",
+        "expectedPriority": "HIGH_OR_CRITICAL",
+        "placedInHighOrCriticalLayer": true,
+        "correct": true
+      },
+      {
+        "theme": "ragging safety",
+        "expectedPriority": "HIGH_OR_CRITICAL",
+        "placedInHighOrCriticalLayer": true,
+        "correct": true
+      },
+      {
+        "theme": "wifi issue",
+        "expectedPriority": "HIGH_OR_CRITICAL",
+        "placedInHighOrCriticalLayer": true,
+        "correct": true
+      }
+    ]
+  }
+}

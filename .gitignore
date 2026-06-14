@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+*.log
+.env
+.env.*
+!.env.example
+*.local
+backend-dev*.log
+ai-service*.log
+

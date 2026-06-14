@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+__pycache__/
+*.pyc
+*.log
+ai-service/.venv/
+ai-service/data/*.jsonl
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
