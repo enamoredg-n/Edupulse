@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Literal
 
@@ -35,6 +36,9 @@ CRITICAL_WORDS = {
     "ragged",
     "harassment",
     "abuse",
+    "abused",
+    "abusd",
+    "abusive",
     "corruption",
     "bribe",
     "extortion",
@@ -70,6 +74,9 @@ ULTRA_CONCERN_WORDS = {
     "harass",
     "misconduct",
     "abuse",
+    "abused",
+    "abusd",
+    "abusive",
     "bully",
     "bullying",
     "bullied",
@@ -122,6 +129,20 @@ HEALTH_RISK_WORDS = {
     "stomach",
     "uncooked",
     "undercooked",
+}
+
+SAFETY_TYPO_ALIASES = {
+    "abuse": {"abusd", "abuzed", "abuseed"},
+    "abused": {"abusd", "abuzed", "abuseed"},
+    "harassment": {"harasment", "harrasment", "harrassment"},
+    "harassed": {"harrased", "harrassed", "harased"},
+    "bully": {"bullid", "bullyed", "bullyd"},
+    "bullying": {"bullyng", "bulling", "bulliying"},
+    "snake": {"snak", "sanke", "snaek"},
+    "firing": {"firng", "fireing"},
+    "shooting": {"shoting", "shootng"},
+    "corruption": {"coruption", "corrupton"},
+    "contaminated": {"contaminted", "contaminatd"},
 }
 
 NEGATIVE_WORDS = {
@@ -216,6 +237,9 @@ ISSUE_TAXONOMY: list[dict[str, Any]] = [
             "misconduct",
             "molest",
             "abuse",
+            "abused",
+            "abusd",
+            "abusive",
             "unsafe behaviour",
             "unsafe behavior",
         ],
@@ -1207,6 +1231,15 @@ def match_issue_taxonomy(text: str, category_name: str = "") -> dict[str, Any] |
     clean_text = normalize_text(text)
     clean_category = normalize_text(category_name)
     for rule in ISSUE_TAXONOMY:
+        bucket = str(rule.get("bucket", ""))
+        faculty_context = any(word in clean_text for word in ("teacher", "faculty", "professor", "sir", "madam"))
+        senior_context = any(word in clean_text for word in ("senior", "seniors", "hostel ragging", "ragging"))
+        if bucket == "RAGGING" and faculty_context and "ragging" not in clean_text:
+            continue
+        if bucket == "FACULTY_HARASSMENT" and senior_context and not any(
+            word in clean_text for word in ("harass", "abuse", "abusd", "misconduct", "physical touch")
+        ):
+            continue
         category_hints = [normalize_text(str(item)) for item in rule.get("categoryHints", [])]
         if category_hints and clean_category and not any(
             hint in clean_category or clean_category in hint for hint in category_hints
@@ -1216,13 +1249,38 @@ def match_issue_taxonomy(text: str, category_name: str = "") -> dict[str, Any] |
             text_only_match = True
         if not text_only_match and str(rule.get("type")) != "urgent":
             continue
-        if contains_any_phrase(clean_text, rule.get("phrases", [])):
+        phrases = rule.get("phrases", [])
+        matched = (
+            contains_safety_phrase(clean_text, phrases)
+            if str(rule.get("type")) == "urgent"
+            else contains_any_phrase(clean_text, phrases)
+        )
+        if matched:
             return rule
     return None
 
 
 def contains_any_phrase(text: str, phrases: list[str] | tuple[str, ...] | set[str]) -> bool:
     return any(normalize_text(str(phrase)) in text for phrase in phrases if str(phrase).strip())
+
+
+def contains_safety_phrase(
+    text: str,
+    phrases: list[str] | tuple[str, ...] | set[str],
+) -> bool:
+    clean = normalize_text(text)
+    if contains_any_phrase(clean, phrases):
+        return True
+
+    tokens = clean.split()
+    for phrase in phrases:
+        target = normalize_text(str(phrase))
+        if not target:
+            continue
+        aliases = SAFETY_TYPO_ALIASES.get(target, set())
+        if any(alias in tokens for alias in aliases):
+            return True
+    return False
 
 
 def taxonomy_bucket_key(doc: dict[str, Any]) -> str | None:
@@ -1291,6 +1349,10 @@ def extract_entities_from_docs(docs: list[dict[str, Any]]) -> dict[str, Any]:
         r"\bcanteen\b",
         r"\blibrary\b",
         r"\blab\b",
+        r"\bstaff\s*room\b",
+        r"\bstaffroom\b",
+        r"\bclassroom\b",
+        r"\bclass\b",
         r"\bwashroom\b",
         r"\bparking\s+area\b",
         r"\bcampus\s+gate\b",
@@ -1304,6 +1366,25 @@ def extract_entities_from_docs(docs: list[dict[str, Any]]) -> dict[str, Any]:
         for match in re.finditer(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}\b", raw_text)
         if match.group(0).strip().lower() not in {"Computer Science", "Information Technology"}
     }
+    for match in re.finditer(
+        r"\b([A-Z][a-z]{2,})\s+(?:bullied|harassed|harrased|harrassed|abused|abusd|threatened|hit|touched|scolded)\b",
+        raw_text,
+    ):
+        people.add(match.group(1))
+    for match in re.finditer(
+        r"\b([a-z]{3,})\s+(?:bullied|harassed|harrased|harrassed|abused|abusd|threatened|hit|touched|scolded)\b",
+        clean,
+    ):
+        candidate = match.group(1)
+        if candidate not in {"teacher", "faculty", "professor", "student", "senior", "someone", "person", "staff"}:
+            people.add(candidate.title())
+    for match in re.finditer(
+        r"\b(?:teacher|faculty|professor|sir|maam|madam)\s+(?:named\s+)?([a-z]{3,})\b",
+        clean,
+    ):
+        candidate = match.group(1)
+        if candidate not in {"abused", "abusd", "harassed", "harrased", "bullied", "misbehaved", "misbeahves"}:
+            people.add(candidate.title())
     semesters = {
         pretty_entity(match.group(0))
         for match in re.finditer(
@@ -1837,6 +1918,7 @@ def small_signal_reasoning_layer(
                     "detailedSummary": build_plain_issue_summary(theme, extract_theme_evidence_samples(theme)),
                     "mentions": theme["mentionCount"],
                     "source": "small_signal_safety_reasoning",
+                    **ultra_evidence_context(theme),
                 }
             )
 
@@ -1857,7 +1939,13 @@ def merge_local_ultra_concerns(
         themes,
     )
     existing_ids = {str(item.get("id")) for item in existing}
-    merged = list(existing)
+    merged = []
+    for concern in existing:
+        enriched = dict(concern)
+        item_id = str(enriched.get("id", ""))
+        if item_id.isdigit() and int(item_id) < len(themes):
+            enriched.update(ultra_evidence_context(themes[int(item_id)]))
+        merged.append(enriched)
 
     for index, theme in enumerate(themes):
         item_id = str(index)
@@ -1875,6 +1963,7 @@ def merge_local_ultra_concerns(
                 "detailedSummary": build_plain_issue_summary(theme, extract_theme_evidence_samples(theme)),
                 "mentions": theme["mentionCount"],
                 "source": "deterministic_ultra_concern_guard",
+                **ultra_evidence_context(theme),
             }
         )
         existing_ids.add(item_id)
@@ -1882,6 +1971,15 @@ def merge_local_ultra_concerns(
     return {
         **reasoning,
         "ultraConcerningIssues": collapse_ultra_concerns(merged)[:8],
+    }
+
+
+def ultra_evidence_context(theme: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "evidenceSamples": extract_theme_evidence_samples(theme),
+        "evidenceDepartments": extract_theme_departments(theme),
+        "extractedEntities": extract_theme_entities(theme),
+        "taxonomy": extract_theme_taxonomy(theme),
     }
 
 
@@ -1954,11 +2052,24 @@ def collapse_ultra_concerns(items: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     for item in items:
         key, title = ultra_concern_bucket(item)
+        title = urgent_concern_title(key, item, title)
         existing = buckets.get(key)
         mentions = int(NumberLike(item.get("mentions", 1)))
         if existing:
             existing["mentions"] = int(existing.get("mentions", 1)) + mentions
             existing["relatedTitles"].append(str(item.get("title", title)))
+            existing["evidenceSamples"] = list(
+                dict.fromkeys(
+                    [
+                        *existing.get("evidenceSamples", []),
+                        *item.get("evidenceSamples", []),
+                    ]
+                )
+            )[:8]
+            for department, count in item.get("evidenceDepartments", {}).items():
+                existing.setdefault("evidenceDepartments", {})[department] = int(
+                    existing.get("evidenceDepartments", {}).get(department, 0)
+                ) + int(NumberLike(count))
             continue
         buckets[key] = {
             **item,
@@ -1979,62 +2090,146 @@ def collapse_ultra_concerns(items: list[dict[str, Any]]) -> list[dict[str, Any]]
     )
 
 
+def urgent_concern_title(bucket: str, item: dict[str, Any], default: str) -> str:
+    evidence = normalize_text(" ".join(str(value) for value in item.get("evidenceSamples", [])))
+    if bucket == "harassment" and contains_safety_phrase(
+        evidence,
+        {"abuse", "abused", "abusd", "abusive"},
+    ) and not contains_safety_phrase(evidence, {"harassment", "harassed", "harrased", "harrassed"}):
+        return "Faculty or staff abuse concern"
+    return default
+
+
 def build_ultra_concern_detail(item: dict[str, Any]) -> str:
-    base = str(
-        item.get("detailedSummary")
-        or item.get("reason")
-        or "A serious concern is present in the feedback."
-    ).strip()
-    detail = urgent_bucket_detail(str(item.get("id", "other")), int(item.get("mentions", 1)))
-    if detail.lower() in base.lower():
-        return base
-    return f"{base} {detail}".strip()
+    bucket = str(item.get("id", "other"))
+    mentions = int(NumberLike(item.get("mentions", 1)))
+    samples = [
+        re.sub(r"\s+", " ", str(sample)).strip()
+        for sample in item.get("evidenceSamples", [])
+        if str(sample).strip()
+    ]
+    evidence_text = normalize_text(" ".join(samples))
+    report_word = "report" if mentions == 1 else "reports"
+    signal = urgent_signal_label(bucket, evidence_text)
+    opening = f"{mentions} student {report_word} describe{'s' if mentions == 1 else ''} {signal}."
 
+    if not samples:
+        return (
+            f"{opening} The available feedback does not contain enough detail to explain the incident. "
+            f"{urgent_verification_sentence(bucket, detailed=False)}"
+        )
 
-def urgent_bucket_detail(bucket: str, mentions: int) -> str:
-    mention_text = f"{mentions} mention(s)" if mentions > 1 else "One mention"
-    details = {
-        "harassment": (
-            f"{mention_text} describe harassment or physical misconduct. Treat it as confidential, "
-            "protect the reporting student's identity, and verify the named faculty, department or place if provided."
-        ),
-        "ragging": (
-            f"{mention_text} describe ragging or bullying. Escalate to the anti-ragging authority and verify "
-            "the hostel, classroom or campus area mentioned in the evidence."
-        ),
-        "corruption": (
-            f"{mention_text} point to money misconduct. Verify receipts, event collections, approval records "
-            "and the people responsible for handling the funds."
-        ),
-        "weapon_violence": (
-            f"{mention_text} describe weapon, firing, shooting or violence signals. Involve campus security "
-            "and verify CCTV, gate logs and witness reports before treating it as a routine feedback issue."
-        ),
-        "animal_danger": (
-            f"{mention_text} describe animal danger on campus. Restrict access to the reported area and ask "
-            "security or maintenance to clear and verify the location."
-        ),
-        "water_contamination": (
-            f"{mention_text} describe unsafe or contaminated water. Stop use of the reported source, arrange "
-            "safe drinking water and test water quality."
-        ),
-        "electric_fire": (
-            f"{mention_text} describe electric shock, fire, smoke or gas leak risk. Block access to the point "
-            "and send maintenance support immediately."
-        ),
-        "food_poisoning": (
-            f"{mention_text} describe food poisoning or sickness. Inspect the food source, preserve evidence "
-            "and check whether medical support is needed."
-        ),
-        "building_injury": (
-            f"{mention_text} describe falling plaster, ceiling or structural injury risk. Close the affected "
-            "room or area until maintenance verifies it."
-        ),
-    }
-    return details.get(
-        bucket,
-        f"{mention_text} need senior admin verification because the issue can affect student safety or trust.",
+    quote = evidence_excerpt(samples[0], 240)
+    evidence = f'The feedback states: "{quote}."' if not quote.endswith(('.', '!', '?')) else f'The feedback states: "{quote}"'
+    missing = urgent_missing_details(bucket, samples, item)
+    detailed = urgent_evidence_is_detailed(samples, item)
+    status = (
+        "The report contains useful incident details, but it remains an allegation until the evidence is verified."
+        if detailed
+        else "The report is brief, so the system does not assume harassment, physical misconduct, injury or intent beyond the words provided."
     )
+    return clean_issue_detail_text(
+        f"{opening} {evidence} {missing} {status} {urgent_verification_sentence(bucket, detailed)}"
+    )
+
+
+def urgent_signal_label(bucket: str, text: str) -> str:
+    if bucket == "harassment":
+        if contains_safety_phrase(text, {"abuse", "abused", "abusd", "abusive"}):
+            return "possible abuse involving a teacher or staff member"
+        return "possible harassment or inappropriate conduct"
+    labels = {
+        "ragging": "possible ragging or bullying",
+        "corruption": "possible corruption or improper money collection",
+        "weapon_violence": "a possible weapon or violence incident",
+        "animal_danger": "a possible dangerous-animal incident on campus",
+        "water_contamination": "possible unsafe or contaminated water",
+        "electric_fire": "a possible electrical, fire or gas hazard",
+        "food_poisoning": "possible food-related illness",
+        "building_injury": "a possible structural injury hazard",
+    }
+    return labels.get(bucket, "a possible safety-sensitive incident")
+
+
+def urgent_evidence_is_detailed(samples: list[str], item: dict[str, Any]) -> bool:
+    words = normalize_text(" ".join(samples)).split()
+    entities = item.get("extractedEntities", {})
+    entity_count = 0
+    if isinstance(entities, dict):
+        entity_count = sum(
+            len(value) if isinstance(value, list) else len(value.keys()) if isinstance(value, dict) else 0
+            for value in entities.values()
+        )
+    detail_words = {
+        "called", "class", "classroom", "staffroom", "hostel", "room", "block",
+        "ground", "canteen", "mess", "lab", "touched", "hit", "scolded", "forced",
+        "money", "water", "projector", "yesterday", "today", "monday", "tuesday",
+        "wednesday", "thursday", "friday", "saturday", "sunday",
+    }
+    return len(words) >= 12 or (len(words) >= 8 and (entity_count > 0 or any(word in words for word in detail_words)))
+
+
+def urgent_missing_details(bucket: str, samples: list[str], item: dict[str, Any]) -> str:
+    text = normalize_text(" ".join(samples))
+    entities = item.get("extractedEntities", {})
+    people = entities.get("people", []) if isinstance(entities, dict) else []
+    locations = entities.get("locations", []) if isinstance(entities, dict) else []
+    missing = []
+
+    if bucket in {"harassment", "ragging", "corruption"} and not people:
+        missing.append("the person involved")
+    if not locations and not any(
+        word in text for word in ("class", "classroom", "staffroom", "hostel", "room", "block", "ground", "campus", "canteen", "mess", "lab")
+    ):
+        missing.append("the exact place")
+    if not contains_time_clue(text):
+        missing.append("the date or time")
+    if len(text.split()) < 8:
+        missing.insert(0, "what happened in detail")
+
+    if not missing:
+        return "The comment provides a usable description of the incident and its context."
+    return f"The feedback does not clearly provide {', '.join(dict.fromkeys(missing))}."
+
+
+def contains_time_clue(text: str) -> bool:
+    clean = normalize_text(text)
+    known_time_typos = {
+        "monay", "mnday", "tuseday", "tuesday", "tydesady", "wednsday",
+        "wensday", "thrusday", "thurday", "firday", "saterday", "satrday", "sundy",
+    }
+    if any(
+        word in clean
+        for word in (
+            "today", "yesterday", "monday", "tuesday", "wednesday", "thursday",
+            "friday", "saturday", "sunday", "morning", "afternoon", "evening", "night",
+        )
+    ) or any(token in known_time_typos for token in clean.split()) or re.search(r"\b\d{1,2}[:/-]\d{1,2}\b", clean):
+        return True
+    day_names = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+    return any(
+        len(token) >= 5 and SequenceMatcher(None, token, day).ratio() >= 0.72
+        for token in clean.split()
+        for day in day_names
+    )
+
+
+def urgent_verification_sentence(bucket: str, detailed: bool) -> str:
+    actions = {
+        "harassment": "Keep the report confidential and contact the reporting student for clarification before identifying or taking action against any person.",
+        "ragging": "Protect the reporting student's identity and send the evidence to the anti-ragging authority for confidential verification.",
+        "corruption": "Preserve the report and verify names, payment records, receipts and approvals before making an allegation against anyone.",
+        "weapon_violence": "Alert campus security immediately and verify the location, witnesses and available CCTV or gate records.",
+        "animal_danger": "Ask security to inspect the reported area immediately and restrict access until the location is checked.",
+        "water_contamination": "Pause use of the reported water source where possible and arrange a water-quality test before confirming contamination.",
+        "electric_fire": "Restrict access to the reported point and ask qualified maintenance staff to inspect it immediately.",
+        "food_poisoning": "Check whether medical support is needed and verify the meal, serving time and affected students before confirming the cause.",
+        "building_injury": "Restrict access to the reported area and arrange an immediate structural or maintenance inspection.",
+    }
+    action = actions.get(bucket, "Send the report for confidential human verification before taking final action.")
+    if detailed:
+        return action
+    return action
 
 
 def ultra_concern_bucket(item: dict[str, Any]) -> tuple[str, str]:
@@ -2172,7 +2367,10 @@ def build_gemini_prompt(
         "physical misconduct, corruption/bribe/extortion, shooting/weapon/violence, snake/animal danger, "
         "building collapse/plaster injury risk, electric shock/fire/gas leak, food poisoning or water contamination. "
         "Do not include normal dissatisfaction like food taste, Wi-Fi, teaching clarity, marks, canteen delay or mess hygiene unless it implies immediate danger. "
-        "Each ultraConcerningIssues object should include id, title, reason, mentions, detailedSummary. detailedSummary should be 2-4 plain-English sentences and must explain the danger using only evidence. "
+        "Each ultraConcerningIssues object should include id, title, reason, mentions, detailedSummary. detailedSummary should be 2-4 plain-English sentences and must use only evidence supplied in that cluster. "
+        "Treat every safety report as an unverified allegation. If a comment is short or vague, state exactly what was reported, list the missing person/place/time/event details, and ask for confidential verification. "
+        "Never upgrade vague words such as abuse, threat or misconduct into physical assault, harassment, injury, psychological harm, hostile environment or confirmed wrongdoing unless the evidence explicitly says so. "
+        "If detailed evidence is present, explain those supplied details clearly but still label the report as unverified until an admin checks it. "
         "Task 2: priorityLabels must follow the system's percentage rule, not opinion: HIGH when an issue has more than 10 percent of valid comments, MEDIUM when it has 5 to 10 percent, and LOW when it has under 5 percent. "
         "Task 3: issueDetails must contain one object for each issue cluster with id, plainEnglishSummary, recommendedAction. "
         "plainEnglishSummary must be 3-5 sentences in simple English. Write like a careful college admin explaining the issue to a principal. Include department, semester, building, room, location, named clues, category, and impact only when those details are present in extractedEntities, evidenceDepartments or evidenceSamples. "
@@ -2459,6 +2657,10 @@ def normalize_ultra_concerns(items: list[Any]) -> list[dict[str, Any]]:
                     ),
                     "mentions": int(NumberLike(item.get("mentions", 1))),
                     "source": str(item.get("source", "gemini_issue_cluster_reasoning")),
+                    "evidenceSamples": item.get("evidenceSamples", []),
+                    "evidenceDepartments": item.get("evidenceDepartments", {}),
+                    "extractedEntities": item.get("extractedEntities", {}),
+                    "taxonomy": item.get("taxonomy", {}),
                 }
             )
         elif isinstance(item, str) and item.strip():
@@ -3085,12 +3287,12 @@ def normalize_text(text: str) -> str:
 
 def has_critical_language(text: str) -> bool:
     clean = normalize_text(text)
-    return any(word in clean for word in CRITICAL_WORDS)
+    return contains_safety_phrase(clean, CRITICAL_WORDS)
 
 
 def has_ultra_concern_language(text: str) -> bool:
     clean = normalize_text(text)
-    return any(word in clean for word in ULTRA_CONCERN_WORDS)
+    return contains_safety_phrase(clean, ULTRA_CONCERN_WORDS)
 
 
 def has_health_risk_language(text: str) -> bool:

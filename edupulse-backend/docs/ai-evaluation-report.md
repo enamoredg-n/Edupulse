@@ -1,6 +1,6 @@
 # EduPulse AI Evaluation Report
 
-Generated: 2026-06-20T07:08:44.919228+00:00
+Generated: 2026-06-20T07:46:33.851670+00:00
 
 Dataset: EduPulse College Feedback Evaluation Set (2026-06-10)
 
@@ -94,9 +94,9 @@ Model mode: `deterministic-fallback-safe-mode`
 - **Mess hygiene and food availability issue** - HIGH / NEGATIVE (2 mentions)
 - **Lab equipment issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Projector issue** - MEDIUM / NEGATIVE (1 mentions)
-- **Campus lighting issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Faculty doubt support issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Faculty marks partiality issue** - MEDIUM / NEGATIVE (1 mentions)
+- **Campus lighting issue** - MEDIUM / NEGATIVE (1 mentions)
 - **Academic workload issue** - MEDIUM / NEGATIVE (1 mentions)
 
 ## Known Misses
