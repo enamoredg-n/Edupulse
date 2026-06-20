@@ -219,6 +219,12 @@ async function main() {
       semesterNumber: 6,
     },
     {
+      name: 'Second Demo Student',
+      email: 'student2@edupulse.edu',
+      password: 'Student@12345',
+      semesterNumber: 6,
+    },
+    {
       name: 'Aarav Sharma',
       email: 'aarav@edupulse.edu',
       password: 'Student@12345',

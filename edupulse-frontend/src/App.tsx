@@ -10,12 +10,14 @@ import {
   Download,
   Gauge,
   GraduationCap,
+  Grid3X3,
   History,
   LogOut,
   ShieldCheck,
   Sparkles,
   UserRound,
   RefreshCw,
+  Radar as RadarIcon,
   X,
 } from 'lucide-react';
 import studentPhoto from './assets/student-photo.jpeg';
@@ -91,6 +93,14 @@ type DashboardSummary = {
   termId?: string;
   responseCount: number;
   submissionCount: number;
+  departmentsMonitored?: number;
+  departmentCategorySatisfaction?: Array<{
+    departmentCode: string;
+    categoryId: string;
+    categoryName: string;
+    averageRating: number;
+    responseCount: number;
+  }>;
   categorySatisfaction: Array<{
     categoryId: string;
     categoryName: string;
@@ -1371,15 +1381,17 @@ function AdminAnalysisReportPage({
   summary: DashboardSummary | null;
   onBack: () => void;
 }) {
-  const categories = satisfactionData.length
-    ? satisfactionData.map((item) => item.categoryName)
-    : ['Academics', 'Faculty', 'Infrastructure', 'Food & Mess', 'Sports/Campus'];
+  const categories = satisfactionData.map((item) => item.categoryName);
   const [ratingCategory, setRatingCategory] = useState('Overall');
   const [selectedExactIssue, setSelectedExactIssue] = useState<ExactIssueDetail | null>(null);
   const [showFullHeatmap, setShowFullHeatmap] = useState(false);
   const categoryOptions = ['Overall', ...categories];
-  const confidence = selectedReport ? Math.round(selectedReport.confidence * 100) : 0;
   const responseCount = summary?.responseCount ?? selectedReport?.inputCount ?? 0;
+  const submissionCount = summary?.submissionCount ?? 0;
+  const hasFeedbackData = responseCount > 0 && satisfactionData.length > 0;
+  const confidence = hasFeedbackData && selectedReport
+    ? Math.round(selectedReport.confidence * 100)
+    : 0;
   const ratingSplit = buildCategoryRatingSplit(summary, ratingCategory);
   const hasRatingSplit = ratingSplit.some((item) => item.value > 0);
   const comparisonData = buildCategoryComparisonData(
@@ -1387,6 +1399,14 @@ function AdminAnalysisReportPage({
     summary?.previousCategorySatisfaction ?? [],
   );
   const hasPreviousComparison = comparisonData.some((item) => item.previousYear !== null);
+  const satisfactionTrend = hasPreviousComparison
+    ? Math.round(
+        comparisonData.reduce(
+          (total, item) => total + (item.currentYear - (item.previousYear ?? item.currentYear)),
+          0,
+        ) / Math.max(1, comparisonData.length),
+      )
+    : null;
   const hasDenseComparisonLabels = comparisonData.length > 7;
   const comparisonChartMinWidth = Math.max(720, comparisonData.length * (hasPreviousComparison ? 104 : 86));
   const radarData = buildRadarSatisfactionData(satisfactionData);
@@ -1406,18 +1426,24 @@ function AdminAnalysisReportPage({
     allReportThemes,
     selectedReport?.rawJson?.geminiReasoning,
   );
-  const bubbleMatrix = buildBubbleMatrixData(satisfactionData, groupedIssues);
+  const bubbleMatrix = buildBubbleMatrixData(
+    summary?.departmentCategorySatisfaction ?? [],
+  );
   const urgentRiskCount = concerningIssues.filter(
     (issue) => issue.severity === 'CRITICAL' && issue.id !== 'no-critical-concern',
   ).length;
   const hasMoreHeatmapRows = bubbleMatrix.rows.length > 7;
   const visibleHeatmapRows = showFullHeatmap ? bubbleMatrix.rows : bubbleMatrix.rows.slice(0, 7);
-  const departmentsMonitored = bubbleMatrix.departments.length;
+  const departmentsMonitored = hasFeedbackData
+    ? (summary?.departmentsMonitored ?? 0)
+    : 0;
   const kpiCards = buildAnalyticsKpis({
     confidence,
     criticalOpen: urgentRiskCount,
     departmentsMonitored,
-    responseCount,
+    hasData: hasFeedbackData,
+    satisfactionTrend,
+    submissionCount,
     satisfactionScore,
   });
   const aiActionReport = buildAiActionReport({
@@ -1425,6 +1451,7 @@ function AdminAnalysisReportPage({
     departments: bubbleMatrix.departments,
     issues: resultIssues,
     responseCount,
+    submissionCount,
     satisfactionScore,
   });
   const engineBenchmark = buildEngineBenchmarkModel(selectedReport, responseCount);
@@ -1484,23 +1511,26 @@ function AdminAnalysisReportPage({
               <span>{card.label}</span>
               <strong>{card.value}</strong>
             </div>
-            <em className={card.trend >= 0 ? 'positive' : 'negative'}>
-              {card.trend >= 0 ? '+' : ''}
-              {card.trend}% vs previous
+            <em className={card.trend === null ? 'neutral' : card.trend >= 0 ? 'positive' : 'negative'}>
+              {card.note}
             </em>
-            <ResponsiveContainer width="100%" height={42}>
-              <LineChart data={card.sparkline.map((value, index) => ({ index, value }))}>
-                <Line
-                  dataKey="value"
-                  dot={false}
-                  isAnimationActive
-                  stroke={card.stroke}
-                  strokeLinecap="round"
-                  strokeWidth={2.5}
-                  type="monotone"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {card.sparkline.length > 1 ? (
+              <ResponsiveContainer width="100%" height={42}>
+                <LineChart data={card.sparkline.map((value, index) => ({ index, value }))}>
+                  <Line
+                    dataKey="value"
+                    dot={false}
+                    isAnimationActive
+                    stroke={card.stroke}
+                    strokeLinecap="round"
+                    strokeWidth={2.5}
+                    type="monotone"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="kpi-no-trend">No trend data</div>
+            )}
           </article>
         ))}
       </section>
@@ -1512,6 +1542,7 @@ function AdminAnalysisReportPage({
             title={hasPreviousComparison ? 'Current semester vs previous semester' : 'Current category satisfaction'}
             action={hasPreviousComparison ? 'Percentage score' : undefined}
           />
+          {comparisonData.length > 0 ? (
           <div className="comparison-chart-scroll" aria-label="Semester comparison chart">
             <div
               className="comparison-chart-canvas"
@@ -1545,7 +1576,14 @@ function AdminAnalysisReportPage({
               </ResponsiveContainer>
             </div>
           </div>
-          {!hasPreviousComparison && (
+          ) : (
+            <div className="analytics-empty-state">
+              <BarChart3 size={30} />
+              <strong>No feedback data</strong>
+              <p>Student submissions will appear here after feedback is received.</p>
+            </div>
+          )}
+          {hasFeedbackData && !hasPreviousComparison && (
             <p className="comparison-empty-note">
               Previous semester data is not available for this tenant yet, so only current semester scores are shown.
             </p>
@@ -1611,7 +1649,7 @@ function AdminAnalysisReportPage({
         </div>
         <div className="ai-findings-layout">
           <div className="ai-finding-grid">
-            {resultIssues.map((issue) => (
+            {resultIssues.length > 0 ? resultIssues.map((issue) => (
               <article
                 className={`ai-finding-card ${issue.status.toLowerCase()} ${
                   selectedExactIssue?.id === issue.id ? 'selected' : ''
@@ -1634,7 +1672,13 @@ function AdminAnalysisReportPage({
                   </button>
                 </div>
               </article>
-            ))}
+            )) : (
+              <div className="analytics-empty-state compact ai-findings-empty">
+                <Sparkles size={30} />
+                <strong>No AI findings</strong>
+                <p>Findings will appear after students submit comments and ratings.</p>
+              </div>
+            )}
           </div>
 
           {selectedExactIssue && (
@@ -1678,7 +1722,14 @@ function AdminAnalysisReportPage({
             title="Category satisfaction by department"
             action="Size = response volume"
           />
-          <div className="bubble-matrix">
+          {bubbleMatrix.rows.length > 0 ? (
+          <div
+            className="bubble-matrix"
+            style={{
+              '--department-count': Math.max(1, bubbleMatrix.departments.length),
+              '--matrix-min-width': `${Math.max(320, 118 + bubbleMatrix.departments.length * 90)}px`,
+            } as React.CSSProperties}
+          >
             <div className="bubble-matrix-head">
               <span />
               {bubbleMatrix.departments.map((department) => (
@@ -1693,16 +1744,25 @@ function AdminAnalysisReportPage({
                     className={`bubble-cell ${cell.tone}`}
                     key={`${row.category}-${cell.department}`}
                     style={{ '--bubble-size': `${cell.size}px` } as React.CSSProperties}
-                    title={`${cell.department} ${row.category}: ${cell.score}% satisfaction, ${cell.responses} responses, ${cell.trend}`}
+                    title={cell.score === null
+                      ? `${cell.department} ${row.category}: no feedback data`
+                      : `${cell.department} ${row.category}: ${cell.score}% satisfaction, ${cell.responses} answers`}
                     type="button"
                   >
-                    <span>{cell.score}</span>
+                    <span>{cell.score ?? '--'}</span>
                     <em>{cell.trend}</em>
                   </button>
                 ))}
               </div>
             ))}
           </div>
+          ) : (
+            <div className="analytics-empty-state compact">
+              <Grid3X3 size={30} />
+              <strong>No department data</strong>
+              <p>The heatmap will appear after students submit feedback.</p>
+            </div>
+          )}
           {hasMoreHeatmapRows && (
             <button
               className="heatmap-show-more"
@@ -1720,6 +1780,7 @@ function AdminAnalysisReportPage({
             title=""
             action="Current semester"
           />
+          {radarData.length > 0 ? (
           <ResponsiveContainer width="100%" height={330}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="rgba(148, 163, 184, 0.35)" />
@@ -1728,12 +1789,30 @@ function AdminAnalysisReportPage({
               <Tooltip />
             </RadarChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="analytics-empty-state radar-empty-state">
+              <RadarIcon size={30} />
+              <strong>No satisfaction data</strong>
+              <p>The radar will appear after rated feedback is submitted.</p>
+            </div>
+          )}
         </article>
       </section>
 
       <ConcerningIssuesSection issues={concerningIssues} />
 
-      <AiActionReportCard comparisonData={comparisonData} downloadReport={downloadReport} report={aiActionReport} />
+      {hasFeedbackData ? (
+        <AiActionReportCard comparisonData={comparisonData} downloadReport={downloadReport} report={aiActionReport} />
+      ) : (
+        <section className="premium-panel action-report-empty">
+          <ClipboardList size={30} />
+          <div>
+            <span>AI Action Report</span>
+            <h2>No report can be generated without feedback</h2>
+            <p>Collect at least one student submission, then run analysis again.</p>
+          </div>
+        </section>
+      )}
 
       <AiEngineBenchmarkSection benchmark={engineBenchmark} />
 
@@ -3046,17 +3125,7 @@ function buildCategoryComparisonData(
   data: DashboardSummary['categorySatisfaction'],
   previousData: NonNullable<DashboardSummary['previousCategorySatisfaction']> = [],
 ) {
-  const source = data.length
-    ? data
-    : [
-        { categoryId: 'academics', categoryName: 'Academics', averageRating: 3.1, responseCount: 2200 },
-        { categoryId: 'faculty', categoryName: 'Faculty', averageRating: 2.9, responseCount: 2100 },
-        { categoryId: 'infra', categoryName: 'Infrastructure', averageRating: 2.4, responseCount: 1900 },
-        { categoryId: 'food', categoryName: 'Food & Mess', averageRating: 2.2, responseCount: 1800 },
-        { categoryId: 'sports', categoryName: 'Sports/Campus', averageRating: 3.0, responseCount: 1500 },
-      ];
-
-  return source.map((item) => {
+  return data.map((item) => {
     const currentYear = Math.round((item.averageRating / 4) * 100);
     const previous = previousData.find(
       (previousItem) =>
@@ -3082,49 +3151,62 @@ function buildAnalyticsKpis(input: {
   confidence: number;
   criticalOpen: number;
   departmentsMonitored: number;
-  responseCount: number;
+  hasData: boolean;
+  satisfactionTrend: number | null;
+  submissionCount: number;
   satisfactionScore: number;
 }) {
+  const satisfactionNote = !input.hasData
+    ? 'No feedback data'
+    : input.satisfactionTrend === null
+      ? 'No previous data'
+      : `${input.satisfactionTrend >= 0 ? '+' : ''}${input.satisfactionTrend} points vs previous`;
+
   return [
     {
       label: 'Feedback Health Score',
-      value: `${input.satisfactionScore}/100`,
-      trend: 8,
+      value: input.hasData ? `${input.satisfactionScore}/100` : '--',
+      trend: input.satisfactionTrend,
+      note: satisfactionNote,
       tone: 'violet',
       stroke: '#635bff',
-      sparkline: [54, 58, 61, 60, 64, 67, input.satisfactionScore],
+      sparkline: [],
     },
     {
-      label: 'Total Responses',
-      value: input.responseCount.toLocaleString(),
-      trend: 18,
+      label: 'Student Responses',
+      value: input.submissionCount.toLocaleString(),
+      trend: null,
+      note: input.submissionCount === 1 ? '1 unique student' : `${input.submissionCount} unique students`,
       tone: 'blue',
       stroke: '#0ea5e9',
-      sparkline: [1200, 2400, 4100, 6200, 7700, 9100, input.responseCount],
+      sparkline: [],
     },
     {
       label: 'Urgent Risks',
-      value: input.criticalOpen.toString(),
-      trend: -6,
+      value: input.hasData ? input.criticalOpen.toString() : '0',
+      trend: null,
+      note: input.hasData ? 'Current dataset' : 'No feedback data',
       tone: 'rose',
       stroke: '#ef4444',
-      sparkline: [34, 31, 29, 28, 26, 25, input.criticalOpen],
+      sparkline: [],
     },
     {
       label: 'AI Confidence',
-      value: `${input.confidence || '--'}%`,
-      trend: 5,
+      value: input.hasData && input.confidence ? `${input.confidence}%` : '--',
+      trend: null,
+      note: input.hasData ? 'Current analysis' : 'No analysis data',
       tone: 'emerald',
       stroke: '#10b981',
-      sparkline: [49, 51, 55, 57, 58, 59, input.confidence || 60],
+      sparkline: [],
     },
     {
       label: 'Departments Monitored',
       value: input.departmentsMonitored.toString(),
-      trend: 0,
+      trend: null,
+      note: input.hasData ? 'With submitted feedback' : 'No feedback data',
       tone: 'amber',
       stroke: '#f59e0b',
-      sparkline: [2, 3, 4, 5, 5, 5, input.departmentsMonitored],
+      sparkline: [],
     },
   ];
 }
@@ -3563,33 +3645,63 @@ function prettifyQualityReason(reason: string) {
 }
 
 function buildBubbleMatrixData(
-  data: DashboardSummary['categorySatisfaction'],
-  themes: ThemeInsight[],
+  data: NonNullable<DashboardSummary['departmentCategorySatisfaction']>,
 ) {
-  const heatmap = buildIssueHeatmapData(data, themes);
-  const cellsByCategory = new Map(heatmap.rows.map((row) => [row.category, row.values]));
+  if (!data.length) return { departments: [], rows: [] };
+
+  const knownDepartmentOrder = ['CSE', 'ECE', 'IT', 'ME', 'CE'];
+  const departments = Array.from(new Set(data.map((item) => item.departmentCode)))
+    .sort((first, second) => {
+      const firstIndex = knownDepartmentOrder.indexOf(first);
+      const secondIndex = knownDepartmentOrder.indexOf(second);
+      if (firstIndex !== -1 || secondIndex !== -1) {
+        return (firstIndex === -1 ? 999 : firstIndex) - (secondIndex === -1 ? 999 : secondIndex);
+      }
+      return first.localeCompare(second);
+    });
+  const categories = Array.from(
+    new Map(
+      data.map((item) => [
+        item.categoryId,
+        { categoryId: item.categoryId, categoryName: item.categoryName },
+      ]),
+    ).values(),
+  );
   const desiredOrder = ['Academics', 'Faculty', 'Infrastructure', 'Food', 'Sports'];
-  const rows = heatmap.rows
-    .map((row, rowIndex) => ({
-      category: row.category,
-      cells: heatmap.departments.map((department, colIndex) => {
-        const score = cellsByCategory.get(row.category)?.[colIndex] ?? 70;
-        const responses = 180 + ((rowIndex + 2) * (colIndex + 5) * 37) % 780;
+  const rows = categories
+    .map((category) => ({
+      category: compactCategoryName(category.categoryName),
+      cells: departments.map((department) => {
+        const source = data.find(
+          (item) => item.categoryId === category.categoryId && item.departmentCode === department,
+        );
+        const score = source ? Math.round((source.averageRating / 4) * 100) : null;
+        const responses = source?.responseCount ?? 0;
         return {
           department,
           responses,
           score,
-          size: Math.max(42, Math.min(78, 36 + responses / 18)),
+          size: responses ? Math.max(42, Math.min(78, 42 + Math.sqrt(responses) * 4)) : 42,
           summary:
-            score >= 80
+            score === null
+              ? 'No feedback received for this category and department.'
+              : score >= 80
               ? 'Strong satisfaction signal with low negative clustering.'
               : score >= 65
                 ? 'Stable satisfaction, monitor repeated comments.'
                 : score >= 45
                   ? 'Warning signal: negative themes are increasing.'
                   : 'Critical signal: immediate admin review recommended.',
-          tone: score >= 80 ? 'excellent' : score >= 65 ? 'good' : score >= 45 ? 'warning' : 'critical',
-          trend: score >= 70 ? '+4.2%' : '-6.8%',
+          tone: score === null
+            ? 'empty'
+            : score >= 80
+              ? 'excellent'
+              : score >= 65
+                ? 'good'
+                : score >= 45
+                  ? 'warning'
+                  : 'critical',
+          trend: responses ? `${responses} answer${responses === 1 ? '' : 's'}` : 'No data',
         };
       }),
     }))
@@ -3599,7 +3711,7 @@ function buildBubbleMatrixData(
       return (first === -1 ? 999 : first) - (second === -1 ? 999 : second);
     });
 
-  return { departments: heatmap.departments, rows };
+  return { departments, rows };
 }
 
 function buildAiActionReport(input: {
@@ -3607,8 +3719,23 @@ function buildAiActionReport(input: {
   departments: string[];
   issues: ExactIssueDetail[];
   responseCount: number;
+  submissionCount: number;
   satisfactionScore: number;
 }): AiActionReportModel {
+  if (input.responseCount === 0) {
+    return {
+      metrics: [
+        { label: 'Overall Satisfaction', value: '--' },
+        { label: 'Student Submissions', value: '0' },
+        { label: 'Answers Analyzed', value: '0' },
+        { label: 'Departments', value: '0' },
+      ],
+      summary: 'No student feedback has been submitted for this dataset yet.',
+      topIssues: [],
+      rootCauses: [],
+      actionPlan: [],
+    };
+  }
   const topIssues = input.issues.slice(0, 4);
   const issueFocusAreas = Array.from(new Set(topIssues.map(issueAreaName))).slice(0, 3);
   const weakCategories = input.comparisonData
@@ -3631,14 +3758,13 @@ function buildAiActionReport(input: {
   return {
     metrics: [
       { label: 'Overall Satisfaction', value: `${input.satisfactionScore}/100` },
-      { label: 'Responses Analyzed', value: input.responseCount.toLocaleString() },
-      { label: 'Participation', value: '+18%' },
+      { label: 'Student Submissions', value: input.submissionCount.toLocaleString() },
+      { label: 'Answers Analyzed', value: input.responseCount.toLocaleString() },
       { label: 'Departments', value: input.departments.join(', ') },
     ],
     summary:
-      `${input.responseCount.toLocaleString()} student feedback responses were analyzed from ${input.departments.join(', ')} departments. ` +
-      `Participation is currently +18% compared with the previous semester, which means the feedback sample is stronger for decision-making. ` +
-      `The feedback covered Academics, Faculty, Infrastructure, Food and Sports, and the overall satisfaction level is ${input.satisfactionScore}/100. ` +
+      `${input.submissionCount.toLocaleString()} student submission(s), containing ${input.responseCount.toLocaleString()} rated answer(s), were analyzed from ${input.departments.join(', ')} department(s). ` +
+      `The current dataset has an overall satisfaction level of ${input.satisfactionScore}/100. ` +
       `The system found critical negative clusters around ${mainWeakness}, while ${strongSignal} remained comparatively healthy. ` +
       `This report converts clustered student comments, sentiment and category scores into a focused action plan for admin review.`,
     topIssues: topIssues.map((issue) => ({
@@ -3725,25 +3851,7 @@ function buildResultIssues(
   priorityLabels: GeminiReasoningModel['priorityLabels'] = [],
   issueDetails: GeminiReasoningModel['issueDetails'] = [],
 ): ExactIssueDetail[] {
-  const fallbackThemes: ThemeInsight[] = [
-    {
-      id: 'food-fallback',
-      title: 'Mess issue found',
-      summary: 'Students are reporting food hygiene and preparation issues.',
-      sentiment: 'NEGATIVE',
-      priority: 'HIGH',
-      mentionCount: 380,
-    },
-    {
-      id: 'infra-fallback',
-      title: 'Infrastructure issue found',
-      summary: 'Students are reporting cleanliness and maintenance concerns.',
-      sentiment: 'NEGATIVE',
-      priority: 'HIGH',
-      mentionCount: 260,
-    },
-  ];
-  const source = (themes.length ? themes : fallbackThemes).slice(0, 5);
+  const source = themes.slice(0, 5);
 
   return source.map((theme, index) => {
     const context = inferIssueContext(theme, index);
@@ -3781,7 +3889,7 @@ function buildResultIssues(
       priority: geminiPriority,
       mentions,
       confidence,
-      trend: `+${Math.max(4, Math.min(38, Math.round(mentions / 65)))}%`,
+      trend: 'Current dataset',
       status: geminiPriority === 'HIGH' ? 'Critical' : geminiPriority === 'LOW' ? 'Low' : 'Warning',
       finding: aiSummary,
       rootCause: context.rootCause,
@@ -4019,37 +4127,6 @@ function extractEvidenceComments(evidence: unknown, context: ReturnType<typeof i
     `Students are connecting this issue with ${context.issuePhrase}.`,
     `The affected group is mainly ${context.affectedGroup}.`,
   ]).slice(0, 4);
-}
-
-function buildIssueHeatmapData(
-  data: DashboardSummary['categorySatisfaction'],
-  themes: ThemeInsight[],
-) {
-  const departments = ['CSE', 'ECE', 'IT', 'ME', 'CE'];
-  const categories = (data.length ? data : [
-    { categoryId: 'academics', categoryName: 'Academics', averageRating: 3.1, responseCount: 2200 },
-    { categoryId: 'faculty', categoryName: 'Faculty', averageRating: 2.9, responseCount: 2100 },
-    { categoryId: 'infra', categoryName: 'Infrastructure', averageRating: 2.4, responseCount: 1900 },
-    { categoryId: 'food', categoryName: 'Food & Mess', averageRating: 2.2, responseCount: 1800 },
-    { categoryId: 'sports', categoryName: 'Sports/Campus', averageRating: 3.0, responseCount: 1500 },
-  ]);
-
-  const rows = categories.map((category, rowIndex) => {
-    const issuePenalty = themes
-      .filter((theme) => normalizeLabel(`${theme.title} ${theme.summary}`).includes(normalizeLabel(category.categoryName).split(' ')[0]))
-      .reduce((total, theme) => total + Math.min(28, theme.mentionCount / 18), 0);
-    const baseSatisfaction = Math.round((category.averageRating / 4) * 100);
-
-    return {
-      category: compactCategoryName(category.categoryName),
-      values: departments.map((_, colIndex) => {
-        const variation = (((rowIndex + 2) * (colIndex + 3) * 7) % 22) - 10;
-        return Math.max(12, Math.min(98, Math.round(baseSatisfaction - issuePenalty + variation)));
-      }),
-    };
-  });
-
-  return { departments, rows };
 }
 
 function compactCategoryName(name: string) {

@@ -114,11 +114,51 @@ export class DashboardService {
     const categoryNameById = new Map(
       categories.map((category) => [category.id, category.name]),
     );
+    const departmentCategoryRows = selectedTermId
+      ? await this.prisma.$queryRaw<DepartmentCategoryRow[]>`
+          SELECT
+            d."code" AS "departmentCode",
+            r."categoryId" AS "categoryId",
+            AVG(r."rating")::float8 AS "averageRating",
+            COUNT(*)::int AS "responseCount"
+          FROM "FeedbackResponse" r
+          JOIN "FeedbackSubmission" s ON s."id" = r."submissionId"
+          JOIN "User" u ON u."id" = s."studentId"
+          LEFT JOIN "Department" d ON d."id" = u."departmentId"
+          WHERE r."collegeId" = ${collegeId} AND s."termId" = ${selectedTermId}
+          GROUP BY d."code", r."categoryId"
+        `
+      : await this.prisma.$queryRaw<DepartmentCategoryRow[]>`
+          SELECT
+            d."code" AS "departmentCode",
+            r."categoryId" AS "categoryId",
+            AVG(r."rating")::float8 AS "averageRating",
+            COUNT(*)::int AS "responseCount"
+          FROM "FeedbackResponse" r
+          JOIN "FeedbackSubmission" s ON s."id" = r."submissionId"
+          JOIN "User" u ON u."id" = s."studentId"
+          LEFT JOIN "Department" d ON d."id" = u."departmentId"
+          WHERE r."collegeId" = ${collegeId}
+          GROUP BY d."code", r."categoryId"
+        `;
+    const departmentsMonitored = new Set(
+      departmentCategoryRows
+        .map((item) => item.departmentCode)
+        .filter((code): code is string => Boolean(code)),
+    ).size;
 
     return {
       termId: selectedTermId,
       responseCount,
       submissionCount,
+      departmentsMonitored,
+      departmentCategorySatisfaction: departmentCategoryRows.map((row) => ({
+        departmentCode: row.departmentCode ?? 'UNKNOWN',
+        categoryId: row.categoryId,
+        categoryName: categoryNameById.get(row.categoryId) ?? 'Unknown',
+        averageRating: Number(Number(row.averageRating).toFixed(2)),
+        responseCount: Number(row.responseCount),
+      })),
       categorySatisfaction: categoryGroups.map((group) => ({
         categoryId: group.categoryId,
         categoryName: categoryNameById.get(group.categoryId) ?? 'Unknown',
@@ -169,3 +209,10 @@ export class DashboardService {
     return { unsatisfied, average, satisfied };
   }
 }
+
+type DepartmentCategoryRow = {
+  departmentCode: string | null;
+  categoryId: string;
+  averageRating: number;
+  responseCount: number;
+};

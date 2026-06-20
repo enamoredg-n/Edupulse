@@ -133,6 +133,10 @@ password: Admin@12345
 Student
 email: student@edupulse.edu
 password: Student@12345
+
+Second Student
+email: student2@edupulse.edu
+password: Student@12345
 ```
 
 In Swagger:
