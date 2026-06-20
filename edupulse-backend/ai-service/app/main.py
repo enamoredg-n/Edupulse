@@ -51,6 +51,10 @@ CRITICAL_WORDS = {
     "emergency",
     "bully",
     "bullying",
+    "bullied",
+    "harassed",
+    "harrased",
+    "harrassed",
     "intimidating",
     "stomach problem",
     "stomach problems",
@@ -68,6 +72,10 @@ ULTRA_CONCERN_WORDS = {
     "abuse",
     "bully",
     "bullying",
+    "bullied",
+    "harassed",
+    "harrased",
+    "harrassed",
     "physical touch",
     "molest",
     "assault",
@@ -178,6 +186,11 @@ FACULTY_BEHAVIOUR_HINTS = {
     "ignore",
     "scold",
     "discouraging",
+    "misbehaves",
+    "misbeahves",
+    "misbehaved",
+    "misbehaviour",
+    "misbehavior",
 }
 
 ISSUE_TAXONOMY: list[dict[str, Any]] = [
@@ -194,6 +207,11 @@ ISSUE_TAXONOMY: list[dict[str, Any]] = [
         "phrases": [
             "harassment",
             "harass",
+            "harassed",
+            "harrased",
+            "harrassed",
+            "bullied",
+            "bullied me",
             "physical touch",
             "misconduct",
             "molest",
@@ -2466,7 +2484,7 @@ def NumberLike(value: Any) -> float:
 
 
 def build_plain_issue_summary(theme: dict[str, Any], samples: list[str]) -> str:
-    useful_samples = [sample.strip() for sample in samples if len(sample.strip().split()) >= 5]
+    useful_samples = [sample.strip() for sample in samples if len(sample.strip().split()) >= 3]
     if not useful_samples:
         return "The exact issue is not described in the feedbacks."
     text = normalize_text(f"{theme.get('title', '')} {theme.get('summary', '')} {' '.join(useful_samples)}")
@@ -2524,6 +2542,8 @@ def issue_opening_sentence(title: str, text: str, mentions: int) -> str:
         return f"{mention_text} {point_verb} to teaching-quality or subject-knowledge gaps."
     if "new faculty" in text or "replace faculty" in text:
         return f"{mention_text} {request_verb} faculty replacement or additional teaching support."
+    if any(hint in text for hint in FACULTY_BEHAVIOUR_HINTS):
+        return f"{mention_text} {point_verb} to faculty behaviour or student-treatment concerns."
     if "faculty" in text or "teacher" in text:
         return f"{mention_text} {point_verb} to a faculty-related concern."
     if "projector" in text:
@@ -2623,7 +2643,13 @@ def entity_sentence_from_theme(theme: dict[str, Any]) -> str:
     locations = [str(item) for item in entities.get("locations", []) if str(item).strip()]
     people = [str(item) for item in entities.get("people", []) if str(item).strip()]
     semesters = [str(item) for item in entities.get("semesters", []) if str(item).strip()]
-    departments = entities.get("departments", {})
+    source_departments = evidence.get("departments", {})
+    departments = (
+        source_departments
+        if isinstance(source_departments, dict)
+        and any(str(key).strip() and str(key).upper() != "UNKNOWN" for key in source_departments)
+        else entities.get("departments", {})
+    )
     if locations:
         parts.append(f"Location clue(s): {', '.join(locations[:3])}.")
     if people:
@@ -2638,9 +2664,15 @@ def entity_sentence_from_theme(theme: dict[str, Any]) -> str:
 def extract_departments_from_text(text: str) -> dict[str, int]:
     clean = normalize_text(text)
     departments = {}
-    for code in ("CSE", "ECE", "IT", "ME", "CE", "CSDS", "CS DS", "CSD"):
+    for code in ("CSE", "ECE", "CSDS", "CS DS", "CSD"):
         if re.search(rf"\b{code.lower()}\b", clean):
             departments[code.replace(" ", "")] = 1
+    if re.search(r"\bIT\b", text) or "information technology" in clean:
+        departments["IT"] = 1
+    if re.search(r"\bME\b", text) or "mechanical engineering" in clean:
+        departments["ME"] = 1
+    if re.search(r"\bCE\b", text) or "civil engineering" in clean:
+        departments["CE"] = 1
     return departments
 
 

@@ -3961,8 +3961,10 @@ function extractEvidenceIssueDetail(evidence: unknown) {
 }
 
 function buildFallbackIssueSummary(evidence: string[]) {
-  const useful = evidence.find((item) => item.trim().split(/\s+/).length >= 5);
-  return useful ?? 'The exact issue is not described in the feedbacks.';
+  const useful = evidence.find((item) => item.trim().split(/\s+/).length >= 3);
+  return useful
+    ? `The student feedback says: ${useful.trim()}. No additional details were provided.`
+    : 'The exact issue is not described in the feedbacks.';
 }
 
 function cleanPanelText(value: unknown) {

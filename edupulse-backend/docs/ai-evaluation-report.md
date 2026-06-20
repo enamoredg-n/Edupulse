@@ -1,6 +1,6 @@
 # EduPulse AI Evaluation Report
 
-Generated: 2026-06-14T14:36:55.861046+00:00
+Generated: 2026-06-20T07:08:44.919228+00:00
 
 Dataset: EduPulse College Feedback Evaluation Set (2026-06-10)
 
@@ -112,6 +112,6 @@ Priority misses: None.
 ## How To Re-run
 
 ```powershell
-cd "C:\Users\gaura\OneDrive\Desktop\Hack Prix\Edupulse-push\edupulse-backend"
+cd "C:\Users\gaura\OneDrive\Desktop\Hack Prix\edupulse-backend"
 python ai-service/evaluation/evaluate_ai.py
 ```
